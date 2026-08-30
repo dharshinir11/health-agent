@@ -1,0 +1,370 @@
+{
+  "name": "Healthcare AI Appointment Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f0f52bf5-3042-465c-8ef5-1c5c5e77156e",
+      "name": "Patient Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "7a6d9ab6-6394-48d8-a7ee-501db63d1c13"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are the Healthcare AI Appointment Assistant, a mock agentic booking system for an academic demo. You are NOT a medical diagnosis tool and must never give real medical advice - you only help route the patient to the right department and book a mock appointment.\n\nYou have four tools, and you must use them in this order as the conversation progresses:\n1. find_department - call this first with the patient's symptoms (as plain text) to decide the right department.\n2. find_doctors - call this with the department name to get the list of doctors in that department.\n3. check_availability - call this with a specific doctor's name to see their available time slots.\n4. book_appointment - call this only after the patient has explicitly chosen one doctor and one time slot. Pass patientName, symptoms, department, doctorName, slotTime, and preferredDate. If you do not know the patient's name yet, ask for it before booking.\n\nConversation flow:\n- Read the patient's message and identify their symptoms and intent.\n- If they want an appointment, call find_department, then find_doctors for that department, then check_availability for the doctors found.\n- Present the available doctors and time slots clearly and ask the patient to pick one.\n- Wait for the patient's choice. Do not book anything until they confirm a specific doctor and slot.\n- Once confirmed, call book_appointment, then reply with a clear confirmation summarizing the doctor, department, and time.\n- If the message is not about booking an appointment, answer briefly and helpfully without using the tools, and gently offer to help book an appointment if relevant.\n- Keep replies short, warm, and easy to read in a chat window."
+        }
+      },
+      "id": "f1046ab0-c82f-4818-82a9-fdbc37d793e0",
+      "name": "Healthcare Appointment Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        480,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 12
+      },
+      "id": "8748eb98-fba6-41e0-ab70-73838a5d79af",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        352,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Given the patient symptoms as plain text, decides the most suitable hospital department and gives a short reason. Always call this FIRST, before searching for doctors.",
+        "jsCode": "const text = ($input.item.json.input || '').toLowerCase();\nconst rules = [\n  { keywords: ['fever','headache','cold','flu','cough','sore throat','body ache','tired','fatigue'], department: 'General Medicine' },\n  { keywords: ['chest pain','heart','palpitation','blood pressure','breathless'], department: 'Cardiology' },\n  { keywords: ['skin','rash','acne','itch','allergy'], department: 'Dermatology' },\n  { keywords: ['child','kid','infant','baby','toddler'], department: 'Pediatrics' },\n  { keywords: ['bone','joint','fracture','back pain','knee','sprain'], department: 'Orthopedics' },\n  { keywords: ['ear','nose','throat','sinus','hearing'], department: 'ENT' },\n  { keywords: ['migraine','seizure','nerve','dizziness','numbness'], department: 'Neurology' }\n];\nlet department = 'General Medicine';\nlet matchedKeyword = null;\nfor (const rule of rules) {\n  const hit = rule.keywords.find(function (k) { return text.indexOf(k) !== -1; });\n  if (hit) { department = rule.department; matchedKeyword = hit; break; }\n}\nconst reason = matchedKeyword ? ('Symptom \"' + matchedKeyword + '\" is commonly handled by ' + department + '.') : 'No specific symptom keyword matched; defaulting to General Medicine for initial assessment.';\nreturn 'Department: ' + department + '\\nReason: ' + reason;"
+      },
+      "id": "bf83d931-024e-4c82-b43d-c31f8fe4e1d0",
+      "name": "find_department",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1gN265XtiOLHG6z9",
+          "cachedResultName": "Mock Doctors"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "department",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('department', 'Hospital department to search doctors in, e.g. General Medicine, Cardiology, Dermatology, Pediatrics, Orthopedics, ENT, Neurology') }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "c74bc094-218b-490c-83bc-dd87236f5e2b",
+      "name": "find_doctors",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1gN265XtiOLHG6z9",
+          "cachedResultName": "Mock Doctors"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "doctorName",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('doctorName', 'Exact name of the doctor to check available time slots for') }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "55305eb8-c22e-4496-9484-b14ed844ffd0",
+      "name": "check_availability",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "d2kIaimXjSj1fBnc",
+          "cachedResultName": "Appointment Bookings"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "patientName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('patientName', \"The patient's name; ask the patient for it if they have not given it\") }}",
+            "symptoms": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('symptoms', 'The symptoms the patient described') }}",
+            "department": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('department', 'The department selected for the appointment') }}",
+            "doctorName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('doctorName', 'The doctor the patient chose') }}",
+            "slotTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('slotTime', 'The time slot the patient chose, e.g. 10:00 AM') }}",
+            "preferredDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('preferredDate', 'The date requested for the appointment, e.g. tomorrow or a specific date') }}",
+            "status": "confirmed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "patientName",
+              "displayName": "patientName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "symptoms",
+              "displayName": "symptoms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "doctorName",
+              "displayName": "doctorName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "slotTime",
+              "displayName": "slotTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "preferredDate",
+              "displayName": "preferredDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "66d3ecf6-f8f4-4c58-b8a7-1c22f9f84698",
+      "name": "book_appointment",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Healthcare AI Appointment Assistant\nMock agentic booking flow: chat -> AI Agent -> tools -> Data Tables.\nBased on the uploaded project report (Agentic AI + PDLC academic project).\nNOT a real medical system - for demonstration only.",
+        "height": 256,
+        "color": 4
+      },
+      "id": "032899ca-2d20-49fa-a550-b386fa6081f2",
+      "name": "Sticky Note 3bfd49d0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Agent Tools\nfind_department (Code Tool, rule-based mock)\nfind_doctors (Data Table: Mock Doctors)\ncheck_availability (Data Table: Mock Doctors)\nbook_appointment (Data Table: Appointment Bookings)",
+        "color": 5
+      },
+      "id": "fd17945a-4645-43c1-81e4-b2f404c37a77",
+      "name": "Sticky Note d5978d22",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        656,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "07738300-0d9b-4012-84fa-818894a16f73",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        336
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5v7y1vZBNAUUF1g0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Patient Chat": {
+      "main": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_department": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_doctors": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "4c234ce9-ab13-47f2-b777-69a7bbbdd152",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0fff7f58d37f3a358b380d1140f441411c2a13182f68a3f7783bb0bfc95d28c2"
+  },
+  "nodeGroups": [],
+  "id": "MvDuF50Sjcg3MdxG",
+  "tags": []
+}
