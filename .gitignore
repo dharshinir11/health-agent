@@ -15,6 +15,11 @@ venv.bak/
 *.sqlite
 *.sqlite3
 
+# Vector Database
+vectorstore/
+chroma/
+.qdrant/
+
 # Environment variables
 .env
 .env.local
