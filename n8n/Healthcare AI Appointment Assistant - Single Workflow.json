@@ -1,0 +1,820 @@
+{
+  "name": "Healthcare AI Appointment Assistant - Single Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "02190953-55c1-4a40-8882-a2bb6a524e70",
+      "name": "Patient Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -624,
+        160
+      ],
+      "webhookId": "7a6d9ab6-6394-48d8-a7ee-501db63d1c13"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text=String($json.chatInput ?? $json.input ?? '').toLowerCase();\nconst flags=['severe chest pain','crushing chest pain','pressure in chest',\"can't breathe\",'cannot breathe',\n'difficulty breathing','severe shortness of breath','unconscious','passed out','not responding',\n'suicidal','kill myself','want to die','self harm','self-harm','heavy bleeding','uncontrolled bleeding',\n'vomiting blood','stroke','face drooping','slurred speech','one side weak','seizure','convulsion',\n'severe allergic reaction','anaphylaxis'];\nconst matched=flags.find(x=>text.includes(x))||null;\nreturn [{json:{...$json,isEmergency:Boolean(matched),emergencyMatch:matched}}];"
+      },
+      "id": "166f11dd-6770-406b-871f-da22c4fb5f75",
+      "name": "Emergency Pre-Screen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0ccc3954-8e2e-4cea-8ffd-84836c2ebde6",
+              "leftValue": "={{ $json.isEmergency }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bea4a02e-ff44-4786-8054-6f8166c685a5",
+      "name": "Emergency?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{output:\"This may be a medical emergency. Please call your local emergency services or go to the nearest emergency department now. This appointment assistant cannot safely handle emergency symptoms.\"}}];"
+      },
+      "id": "ca924dbf-e4b4-4968-a229-1af2087f6b42",
+      "name": "Emergency Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are the Healthcare AI Appointment Assistant, a mock agentic booking system for an academic demo. You are NOT a medical diagnosis tool and must never give real medical advice.\n\nSAFETY:\n- Emergency Pre-Screen runs before you.\n- For a new patient request, use screen_for_emergency FIRST before any other appointment tool.\n- If emergency=true, stop all appointment actions and return emergency-services guidance only.\n- Never diagnose or reassure a patient that an emergency is harmless.\n\nTOOLS:\n1. screen_for_emergency\n2. find_department\n3. find_doctors\n4. check_availability (mock fixed slots)\n5. create_calendar_event (real Google Calendar event)\n6. save_booking (write row to Appointment Bookings data table)\n7. send_confirmation_email (real Gmail email to patient)\n8. cancel_calendar_event (delete the Google Calendar event)\n9. reschedule_calendar_event (update the Google Calendar event time)\n10. update_booking_status (update the data table row by eventId)\n\nDATE/TIME RULES:\n- Availability comes from check_availability only; never invent slots.\n- When booking, convert the chosen date + slot into ISO 8601 datetimes. Use a 30-minute duration (end = start + 30 min). Example: date 2026-01-15 and slot 09:00 AM -> start 2026-01-15T09:00:00, end 2026-01-15T09:30:00.\n\nBOOKING (do these in order):\n- Ask for patient name and email if missing. Never book until the patient explicitly chooses one doctor and one slot.\n- STEP 1: call create_calendar_event. Capture the returned event id.\n- STEP 2: call save_booking, passing that event id as eventId plus all appointment fields.\n- STEP 3: call send_confirmation_email to the patient with the doctor, department, date/time and the event id (booking id).\n- Give the patient the booking/event id - it is required for cancellation or rescheduling.\n\nCANCELLATION (requires the booking/event id):\n- STEP 1: call cancel_calendar_event with the eventId.\n- STEP 2: call update_booking_status with that eventId and status cancelled.\n- STEP 3: call send_confirmation_email to notify the patient of the cancellation.\n\nRESCHEDULING (requires the booking/event id + new date and slot):\n- Confirm new availability with check_availability first.\n- STEP 1: call reschedule_calendar_event with the eventId and new start/end ISO datetimes.\n- STEP 2: call update_booking_status with that eventId, status confirmed, and the new slotTime/preferredDate/appointmentDateTimeISO.\n- STEP 3: call send_confirmation_email to notify the patient of the new time.\n\n- Keep replies short and warm.\n- This is an academic healthcare demo, not a real medical service, but bookings DO create real Google Calendar events, data table rows and confirmation emails."
+        }
+      },
+      "id": "1ca6e779-bc25-456f-b699-04f231afaad2",
+      "name": "Healthcare Appointment Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "070a0e0f-c22b-4681-98aa-52302e0ba3ae",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        384
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5v7y1vZBNAUUF1g0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 12
+      },
+      "id": "d77daba8-a8fe-4738-ae80-0d07de3592c6",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -272,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Call FIRST for a new patient message. Detects emergency red flags. If emergency is true, stop all other tools.",
+        "jsCode": "const text=String($input.item.json.input??'').toLowerCase();\nconst flags=['severe chest pain','crushing chest pain','pressure in chest',\"can't breathe\",'cannot breathe',\n'difficulty breathing','severe shortness of breath','unconscious','passed out','not responding','suicidal',\n'kill myself','want to die','self harm','self-harm','heavy bleeding','uncontrolled bleeding','vomiting blood',\n'stroke','face drooping','slurred speech','one side weak','seizure','convulsion','severe allergic reaction','anaphylaxis'];\nconst matched=flags.find(x=>text.includes(x))||null;\nreturn JSON.stringify({emergency:Boolean(matched),matchedPhrase:matched});"
+      },
+      "id": "3097f6f5-ecf4-4cb2-9e8f-35f2d904ff1d",
+      "name": "screen_for_emergency",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Given the patient symptoms as plain text, decides the most suitable hospital department and gives a short reason. Always call this FIRST, before searching for doctors.",
+        "jsCode": "const text = ($input.item.json.input || '').toLowerCase();\nconst rules = [\n  { keywords: ['fever','headache','cold','flu','cough','sore throat','body ache','tired','fatigue'], department: 'General Medicine' },\n  { keywords: ['chest pain','heart','palpitation','blood pressure','breathless'], department: 'Cardiology' },\n  { keywords: ['skin','rash','acne','itch','allergy'], department: 'Dermatology' },\n  { keywords: ['child','kid','infant','baby','toddler'], department: 'Pediatrics' },\n  { keywords: ['bone','joint','fracture','back pain','knee','sprain'], department: 'Orthopedics' },\n  { keywords: ['ear','nose','throat','sinus','hearing'], department: 'ENT' },\n  { keywords: ['migraine','seizure','nerve','dizziness','numbness'], department: 'Neurology' }\n];\nlet department = 'General Medicine';\nlet matchedKeyword = null;\nfor (const rule of rules) {\n  const hit = rule.keywords.find(function (k) { return text.indexOf(k) !== -1; });\n  if (hit) { department = rule.department; matchedKeyword = hit; break; }\n}\nconst reason = matchedKeyword ? ('Symptom \"' + matchedKeyword + '\" is commonly handled by ' + department + '.') : 'No specific symptom keyword matched; defaulting to General Medicine for initial assessment.';\nreturn 'Department: ' + department + '\\nReason: ' + reason;"
+      },
+      "id": "25e245ff-47bd-4498-8113-37d1f0ddafb4",
+      "name": "find_department",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1gN265XtiOLHG6z9",
+          "cachedResultName": "Mock Doctors"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "department",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('department', 'Hospital department to search doctors in, e.g. General Medicine, Cardiology, Dermatology, Pediatrics, Orthopedics, ENT, Neurology') }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "a422845e-ecf3-4dd1-ba0b-f330b1446736",
+      "name": "find_doctors",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Return available mock appointment slots for a chosen doctor and date. Call after the patient has chosen a doctor. Provide doctorName and preferredDate.",
+        "jsCode": "let x = $input.item.json.query ?? $input.item.json;\nif (typeof x === 'string') { try { x = JSON.parse(x); } catch (e) { x = {}; } }\nx = x || {};\nreturn JSON.stringify({\n  doctorName: x.doctorName || '',\n  preferredDate: x.preferredDate || '',\n  availableSlots: ['09:00 AM','10:00 AM','11:00 AM','02:00 PM','03:00 PM','04:00 PM'],\n  note: 'Mock availability returned by this single-workflow demo. These are illustrative slots, not real Google Calendar free/busy data.'\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"doctorName\":{\"type\":\"string\",\"description\":\"The doctor to check slots for\"},\"preferredDate\":{\"type\":\"string\",\"description\":\"The requested date, e.g. 2026-01-15\"}},\"required\":[\"doctorName\",\"preferredDate\"]}"
+      },
+      "id": "707068c5-3277-4175-97d5-8020a04f0a74",
+      "name": "check_availability",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "STEP 1 of booking. Create a real Google Calendar event for the appointment. Call this after the patient has chosen one doctor and one slot and given their name and email. Returns an event id - you MUST capture this id and pass it to save_booking and to the patient.",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "sampathram@student.tce.edu",
+          "cachedResultName": "sampathram@student.tce.edu"
+        },
+        "start": "={{ $fromAI('start_datetime', 'Appointment start date and time in ISO 8601 with timezone offset, e.g. 2026-01-15T09:00:00', 'string') }}",
+        "end": "={{ $fromAI('end_datetime', 'Appointment end date and time in ISO 8601 with timezone offset, typically 30-60 minutes after start, e.g. 2026-01-15T09:30:00', 'string') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $fromAI('patient_email', 'Patient email address to invite to the event', 'string') }}"
+          ],
+          "description": "={{ $fromAI('event_description', 'Short event description including patient name, department, doctor and symptoms', 'string') }}",
+          "summary": "={{ $fromAI('summary', 'Event title, e.g. Appointment: Dr. Smith - General Medicine', 'string') }}"
+        }
+      },
+      "id": "1e3eb608-b50d-4631-a1f4-19142b2b8f25",
+      "name": "create_calendar_event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        384
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Vk7sGs4YOoX2oGlX",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "STEP 2 of booking. Save the confirmed appointment to the Appointment Bookings data table. Call this AFTER create_calendar_event, passing the event id it returned as eventId.",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "d2kIaimXjSj1fBnc",
+          "cachedResultName": "Appointment Bookings"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "patientName": "={{ $fromAI('patientName', 'Full name of the patient', 'string') }}",
+            "symptoms": "={{ $fromAI('symptoms', 'Reported symptoms', 'string') }}",
+            "department": "={{ $fromAI('department', 'Hospital department', 'string') }}",
+            "doctorName": "={{ $fromAI('doctorName', 'Chosen doctor name', 'string') }}",
+            "slotTime": "={{ $fromAI('slotTime', 'Chosen slot time, e.g. 09:00 AM', 'string') }}",
+            "preferredDate": "={{ $fromAI('preferredDate', 'Requested date, e.g. 2026-01-15', 'string') }}",
+            "status": "confirmed",
+            "patientEmail": "={{ $fromAI('patientEmail', 'Patient email address', 'string') }}",
+            "eventId": "={{ $fromAI('eventId', 'The Google Calendar event id returned by create_calendar_event', 'string') }}",
+            "appointmentDateISO": "={{ $fromAI('appointmentDateISO', 'Appointment date only in ISO, e.g. 2026-01-15', 'string') }}",
+            "appointmentDateTimeISO": "={{ $fromAI('appointmentDateTimeISO', 'Appointment start datetime in ISO 8601, e.g. 2026-01-15T09:00:00', 'string') }}"
+          },
+          "schema": [
+            {
+              "id": "patientName",
+              "displayName": "patientName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "symptoms",
+              "displayName": "symptoms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "doctorName",
+              "displayName": "doctorName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slotTime",
+              "displayName": "slotTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "preferredDate",
+              "displayName": "preferredDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "patientEmail",
+              "displayName": "patientEmail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "eventId",
+              "displayName": "eventId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointmentDateISO",
+              "displayName": "appointmentDateISO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointmentDateTimeISO",
+              "displayName": "appointmentDateTimeISO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4a11-9c22-111111111111",
+      "name": "save_booking",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Send an email to the patient. Use as STEP 3 of booking (confirmation), and after cancellation or rescheduling to notify the patient. Compose a clear subject and body including the doctor, department, date/time and the booking/event id.",
+        "sendTo": "={{ $fromAI('to_email', 'Patient email address to send to', 'string') }}",
+        "subject": "={{ $fromAI('subject', 'Email subject line', 'string') }}",
+        "emailType": "text",
+        "message": "={{ $fromAI('body', 'Full plain-text email body for the patient', 'string') }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4a11-9c22-222222222222",
+      "name": "send_confirmation_email",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        576
+      ],
+      "webhookId": "840e97d2-677b-4ec5-a88a-88ef4cfef492",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "DWrHsTsQIHtrFv7s",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Cancel an appointment by deleting its Google Calendar event. Requires the eventId that was given to the patient when they booked. After calling this, call update_booking_status to mark the row cancelled, then send_confirmation_email.",
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "sampathram@student.tce.edu",
+          "cachedResultName": "sampathram@student.tce.edu"
+        },
+        "eventId": "={{ $fromAI('eventId', 'The Google Calendar event id / booking id to cancel', 'string') }}",
+        "options": {}
+      },
+      "id": "355e1e26-0114-40dc-b7cd-7f6452912796",
+      "name": "cancel_calendar_event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        864,
+        384
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Vk7sGs4YOoX2oGlX",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Reschedule an appointment by updating its Google Calendar event to a new start/end. Requires the eventId given at booking. After calling this, call update_booking_status with the new slot/date, then send_confirmation_email.",
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "sampathram@student.tce.edu",
+          "cachedResultName": "sampathram@student.tce.edu"
+        },
+        "eventId": "={{ $fromAI('eventId', 'The Google Calendar event id / booking id to reschedule', 'string') }}",
+        "updateFields": {
+          "end": "={{ $fromAI('end_datetime', 'New appointment end in ISO 8601, e.g. 2026-01-20T14:30:00', 'string') }}",
+          "start": "={{ $fromAI('start_datetime', 'New appointment start in ISO 8601, e.g. 2026-01-20T14:00:00', 'string') }}"
+        }
+      },
+      "id": "b37ebfaf-77da-4d11-b435-bc80774ee97a",
+      "name": "reschedule_calendar_event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        384
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Vk7sGs4YOoX2oGlX",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Update the stored booking row that matches an eventId. Use after cancelling (set status to cancelled) or rescheduling (set status to confirmed and update slotTime, preferredDate, appointmentDateTimeISO).",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "d2kIaimXjSj1fBnc",
+          "cachedResultName": "Appointment Bookings"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "eventId",
+              "keyValue": "={{ $fromAI('eventId', 'The event id / booking id of the row to update', 'string') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $fromAI('status', 'New status: cancelled or confirmed', 'string') }}",
+            "slotTime": "={{ $fromAI('slotTime', 'New slot time if rescheduling, otherwise repeat existing', 'string') }}",
+            "preferredDate": "={{ $fromAI('preferredDate', 'New date if rescheduling, otherwise repeat existing', 'string') }}",
+            "appointmentDateTimeISO": "={{ $fromAI('appointmentDateTimeISO', 'New appointment datetime ISO if rescheduling, otherwise repeat existing', 'string') }}"
+          },
+          "schema": [
+            {
+              "id": "patientName",
+              "displayName": "patientName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "symptoms",
+              "displayName": "symptoms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "doctorName",
+              "displayName": "doctorName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slotTime",
+              "displayName": "slotTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "preferredDate",
+              "displayName": "preferredDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "patientEmail",
+              "displayName": "patientEmail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "eventId",
+              "displayName": "eventId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointmentDateISO",
+              "displayName": "appointmentDateISO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "appointmentDateTimeISO",
+              "displayName": "appointmentDateTimeISO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4a11-9c22-333333333333",
+      "name": "update_booking_status",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Healthcare AI Appointment Assistant\nSingle-workflow version: Chat -> Emergency Gate -> AI Agent -> self-contained tools.\nAll agent tools run inside this ONE workflow - no Execute Workflow sub-workflows are needed.\nBookings create REAL Google Calendar events, data table rows and Gmail confirmation emails.\nNOT a real medical system - for demonstration only.",
+        "height": 256,
+        "color": 4
+      },
+      "id": "e9759354-0dc7-4432-8314-1d705b307562",
+      "name": "Sticky Note 3bfd49d0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Agent Tools\nscreen_for_emergency (Code Tool)\nfind_department (Code Tool, rule-based)\nfind_doctors (Data Table: Mock Doctors)\ncheck_availability (Code Tool, mock fixed slots)\n\nREAL FULFILLMENT:\ncreate_calendar_event / cancel_calendar_event / reschedule_calendar_event (Google Calendar)\nsave_booking / update_booking_status (Data Table: Appointment Bookings)\nsend_confirmation_email (Gmail)",
+        "color": 5
+      },
+      "id": "2c1db343-77e4-4d68-89a1-85ba9b34323c",
+      "name": "Sticky Note d5978d22",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        48,
+        864
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Patient Chat": {
+      "main": [
+        [
+          {
+            "node": "Emergency Pre-Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency Pre-Screen": {
+      "main": [
+        [
+          {
+            "node": "Emergency?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency?": {
+      "main": [
+        [
+          {
+            "node": "Emergency Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "screen_for_emergency": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_department": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_doctors": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_calendar_event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_confirmation_email": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancel_calendar_event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reschedule_calendar_event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_booking_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Healthcare Appointment Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bfa05157-791b-4c51-816a-17e05a16bd6f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0fff7f58d37f3a358b380d1140f441411c2a13182f68a3f7783bb0bfc95d28c2"
+  },
+  "nodeGroups": [],
+  "id": "Xwcb1LJnR2TJCYmm",
+  "tags": []
+}
