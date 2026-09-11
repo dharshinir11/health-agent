@@ -1,127 +1,237 @@
 # 🏥 Healthcare AI Appointment Assistant
 
-An intelligent, agentic AI-powered appointment booking system built with Python and Streamlit. This project demonstrates a genuine **Agentic AI workflow** where the agent reasons, decides, calls tools, and completes multi-step tasks autonomously.
+An intelligent healthcare appointment booking system with **Retrieval-Augmented Generation (RAG)** powered by **n8n**, **Streamlit**, **Qdrant**, and **Hugging Face**. The assistant answers healthcare questions from approved hospital documents and handles appointment booking through structured tools.
 
-## 🎯 What Makes This Agentic?
-
-Unlike simple chatbots that just generate text, this application implements a **true agentic loop**:
-
-```
-User Input → Agent Reasoning → Tool Selection → Tool Execution → 
-Result Processing → Next Decision → Tool Call → ... → Final Response
-```
-
-The agent:
-- ✅ **Reasons** about the user's request
-- ✅ **Decides** which tool to use based on current state
-- ✅ **Calls** appropriate tools (find_department, find_doctors, check_availability, book_appointment)
-- ✅ **Inspects** tool results
-- ✅ **Decides** next action based on results
-- ✅ **Completes** multi-step appointment booking tasks
+---
 
 ## 🏗️ Architecture
 
 ```
-healthcare-agent/
-├── app.py                      # Streamlit UI
-├── agent/
-│   ├── __init__.py
-│   ├── agent.py               # Main agent with agentic loop
-│   ├── state.py               # Conversation state management
-│   └── prompts.py             # System prompts and templates
-├── tools/
-│   ├── __init__.py
-│   ├── department_tool.py     # Find appropriate department
-│   ├── doctor_tool.py         # Find doctors in department
-│   ├── availability_tool.py   # Check appointment slots
-│   └── appointment_tool.py    # Book appointment
-├── database/
-│   ├── __init__.py
-│   ├── models.py              # SQLAlchemy models
-│   ├── database.py            # Database connection
-│   └── seed.py                # Seed initial data
-├── utils/
-│   ├── __init__.py
-│   └── helpers.py             # Utility functions
-├── .env.example               # Environment variables template
-├── .gitignore
-└── requirements.txt
+User (Streamlit UI)
+        │
+        ▼
+Streamlit Frontend (app.py)
+        │  POST request
+        ▼
+n8n Webhook (Chat Trigger)
+        │
+        ▼
+n8n AI Agent (LangChain Agent)
+        │
+        ├───► RAG Tool (search_knowledge_base) ──► Qdrant Vector Store
+        │                                           ▲
+        │                                           │
+        │                                   Hugging Face Embeddings
+        │
+        ├───► find_department (Code Tool)
+        ├───► find_doctors (Data Table)
+        ├───► check_availability (Data Table)
+        └───► book_appointment (Data Table)
+        │
+        ▼
+Grounded Response → Streamlit UI
 ```
+
+### RAG Flow
+```
+Approved Documents (.txt)
+        │
+        ▼
+Document Loading → Text Chunking → Embeddings → Qdrant Vector Store
+        │
+        ▼
+User Question → Similarity Search → Retrieved Context → Grounded LLM Response
+```
+
+---
 
 ## ✨ Features
 
-- 🤖 **Agentic AI Workflow**: Real tool calling and decision-making
-- 💬 **Natural Language Chat**: Chat naturally with the AI agent
-- 🏥 **Smart Department Routing**: Automatically identifies the right department based on symptoms
-- 👨‍⚕️ **Doctor Search**: Find available doctors in any department
-- 📅 **Availability Checking**: Real-time appointment slot checking
-- ✅ **Appointment Booking**: Complete booking with confirmation
-- 🔎 **Agent Activity Display**: See what the agent is doing in real-time
-- 🚨 **Emergency Detection**: Recognizes emergency situations and provides appropriate guidance
-- 💾 **SQLite Database**: Persistent storage for all appointments
+- 🤖 **Agentic AI Workflow** — n8n orchestrates tool calling and decision-making
+- 💬 **Natural Language Chat** — Streamlit-based conversational interface
+- 🧠 **RAG Knowledge Base** — Answers grounded in approved healthcare documents
+- 📅 **Appointment Booking** — Full booking workflow with confirmation
+- 🏥 **Department Routing** — Symptom-based department identification
+- 👨‍⚕️ **Doctor Search** — Find doctors by department
+- 🔎 **Activity Display** — Real-time agent activity and RAG source attribution
+- 🚨 **Emergency Detection** — Overrides all flows for urgent symptoms
+- 💾 **SQLite Database** — Persistent appointment storage
 
-## 🛠️ Technology Stack
+---
 
-- **Frontend**: Streamlit
-- **Backend**: Python
-- **Agent**: Python-based agent orchestration with rule-based decision making
-- **Database**: SQLite with SQLAlchemy ORM
-- **Architecture**: Modular, tool-based agent system
+## 📁 Project Structure
 
-## 📋 Prerequisites
+```
+healthcare-agent/
+├── app.py                          # Streamlit UI (connects to n8n webhook)
+├── agent/                          # Local agent utilities (reference)
+│   ├── agent.py
+│   ├── state.py
+│   └── prompts.py
+├── tools/                          # Local tool utilities (reference)
+│   ├── department_tool.py
+│   ├── doctor_tool.py
+│   ├── availability_tool.py
+│   └── appointment_tool.py
+├── database/                       # SQLite database layer (reference)
+│   ├── models.py
+│   ├── database.py
+│   └── seed.py
+├── utils/                          # Emergency detection, formatting
+│   └── helpers.py
+├── health-agent/                   # n8n-based project
+│   ├── app.py                      # Streamlit UI → n8n webhook
+│   ├── n8n/
+│   │   ├── Healthcare AI Appointment Assistant(1).json   # Main workflow (RAG + booking)
+│   │   └── RAG Document Ingestion Workflow.json          # Ingestion workflow
+│   ├── rag/
+│   │   ├── __init__.py
+│   │   └── documents/                # Approved knowledge base
+│   │       ├── hospital_info.txt
+│   │       ├── departments.txt
+│   │       ├── appointment_policy.txt
+│   │       ├── preparation_guidelines.txt
+│   │       ├── emergency_guidelines.txt
+│   │       └── healthcare_faqs.txt
+│   ├── utils/
+│   ├── .env.example
+│   ├── requirements.txt
+│   └── README.md
+├── .env.example
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
 
-- Python 3.8 or higher
-- pip package manager
-- Virtual environment (recommended)
+---
+
+## 🧠 What is RAG?
+
+**Retrieval-Augmented Generation (RAG)** combines a retrieval system with a generative AI model. Instead of relying only on the LLM's pre-trained knowledge, RAG:
+
+1. **Retrieves** relevant information from a curated knowledge base (vector database)
+2. **Augments** the LLM prompt with the retrieved context
+3. **Generates** a response grounded in the retrieved evidence
+
+This ensures answers are accurate, up-to-date, and verifiable.
+
+---
+
+## 🤔 Why RAG in This Project?
+
+- **Accuracy** — Answers come from approved hospital documents, not hallucinated text
+- **Auditability** — Every answer cites its source document
+- **Maintainability** — Update `rag/documents/*.txt` and re-run ingestion
+- **Safety** — Medical information is constrained to vetted content
+- **Local & Free** — Uses free Hugging Face embeddings and local Qdrant
+
+---
+
+## 🔄 RAG vs. Appointment Tools
+
+| RAG (`search_knowledge_base`) | Appointment Tools |
+|---|---|
+| Hospital timings | `find_department` |
+| Department descriptions | `find_doctors` |
+| Doctor specializations | `check_availability` |
+| Preparation guidelines | `book_appointment` |
+| Appointment policies | |
+| Cancellation policy | |
+| Healthcare FAQs | |
+| Emergency guidance | |
+
+The AI Agent decides which tool to use based on user intent. Combined requests use both.
+
+---
 
 ## 🚀 Installation
 
-### 1. Clone the Repository
+### 1. Prerequisites
+
+- Python 3.8+
+- Docker (for n8n and Qdrant)
+- Google API key (for Gemini chat model)
+- Hugging Face API key (free from https://huggingface.co)
+
+### 2. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd healthcare-agent
+git clone https://github.com/dharshinir11/health-agent.git
+cd health-agent
 ```
 
-### 2. Create Virtual Environment
+### 3. Start Qdrant (Vector Database)
 
-**On macOS/Linux:**
+```bash
+docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
+```
+
+### 4. Start n8n (Backend)
+
+```bash
+docker run -d --name n8n \
+  -p 5678:5678 \
+  --link qdrant \
+  -e N8N_HOST=localhost \
+  -e N8N_PORT=5678 \
+  -v n8n_data:/home/node/.n8n \
+  n8nio/n8n
+```
+
+### 5. Install Python Dependencies
+
 ```bash
 python3 -m venv venv
-source venv/bin/activate
-```
-
-**On Windows:**
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-```bash
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment
+### 6. Configure Environment
 
 ```bash
-# Copy the example environment file
 cp .env.example .env
-
-# Edit .env with your settings (optional for MVP)
 ```
 
-### 5. Initialize Database
+Edit `.env`:
 
 ```bash
-python database/seed.py
+GOOGLE_API_KEY=your_google_api_key_here
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+N8N_WEBHOOK_URL=http://localhost:5678/webhook/chat/7a6d9ab6-6394-48d8-a7ee-501db63d1c13
+QDRANT_URL=http://localhost:6333
 ```
 
-This will create the SQLite database and seed it with:
-- 5 departments (General Medicine, Dermatology, Cardiology, Orthopedics, Pediatrics)
-- 10 doctors across all departments
-- Appointment slots for the next 7 days
+---
+
+## ⚙️ n8n Workflow Setup
+
+### 1. Import Workflows
+
+1. Open `http://localhost:5678` in your browser
+2. Go to **Workflows → Import**
+3. Import:
+   - `health-agent/n8n/Healthcare AI Appointment Assistant(1).json`
+   - `health-agent/n8n/RAG Document Ingestion Workflow.json`
+
+### 2. Set Up Credentials
+
+In n8n, configure:
+
+- **Google Gemini API** — for the chat model
+- **Hugging Face API** — for embeddings
+- **Qdrant** — server: `http://host.docker.internal:6333`
+
+### 3. Activate the Main Workflow
+
+Toggle the **Active** switch on the main workflow.
+
+### 4. Run RAG Ingestion
+
+1. Open **"RAG Document Ingestion Workflow"**
+2. Click **Execute Workflow**
+3. This loads all `.txt` files from `health-agent/rag/documents/` into Qdrant
+
+---
 
 ## 🎮 Running the Application
 
@@ -129,249 +239,129 @@ This will create the SQLite database and seed it with:
 streamlit run app.py
 ```
 
-The application will open in your browser at `http://localhost:8501`
-
-## 📖 How to Use
-
-### Example Conversation Flow
-
-**User:** "My name is Dharshini. I have fever and headache and want to see a doctor tomorrow."
-
-**Agent:** 
-- 🎯 Understanding user request
-- ✓ Identified department: General Medicine
-- ✓ Found 2 doctors
-
-"I understand you're looking for a doctor. Based on your symptoms, **General Medicine** seems like the right department.
-
-Here are the available doctors in **General Medicine**:
-
-1. **Dr. Ananya Sharma**
-   MBBS, MD - General Medicine
-
-2. **Dr. Rahul Verma**
-   MBBS, MD - Internal Medicine
-
-Please select a doctor (you can say the doctor's name) and let me know your preferred date."
-
-**User:** "Book Dr. Ananya at 10 AM tomorrow."
-
-**Agent:**
-- ✓ Searching for doctors
-- ✓ Checking appointment availability
-- ✓ Found 5 available slots
-
-"Great! I found **5** available slots for **Dr. Ananya Sharma** on **2025-08-23**:
-
-1. 09:00 AM
-2. 10:00 AM
-3. 11:00 AM
-4. 02:00 PM
-5. 03:00 PM
-
-Please select a time slot (e.g., '10:00 AM' or 'Book 10 AM')."
-
-**User:** "10:00 AM"
-
-**Agent:**
-- ⏳ Waiting for user to select a time slot
-
-"Perfect! You've selected **10:00 AM** on **2025-08-23** with **Dr. Ananya Sharma**.
-
-Please confirm:
-- Patient: Dharshini
-- Doctor: Dr. Ananya Sharma
-- Date: 2025-08-23
-- Time: 10:00 AM
-
-Should I proceed with booking this appointment? (Say 'yes' or 'confirm' to book)"
-
-**User:** "Yes, confirm."
-
-**Agent:**
-- ✓ Appointment confirmed (ID: 1)
-
-"🎉 **Appointment Successfully Booked!**
-
-**Appointment ID:** 1
-**Patient:** Dharshini
-**Doctor:** Dr. Ananya Sharma
-**Department:** General Medicine
-**Date:** 2025-08-23
-**Time:** 10:00 AM
-**Status:** confirmed
-
-Please arrive 10 minutes before your scheduled time. Bring any relevant medical records with you.
-
-Is there anything else I can help you with?"
-
-## 🔧 Agent Tools
-
-The agent has access to 4 main tools:
-
-### 1. `find_department(user_request)`
-Determines the appropriate department based on user symptoms using keyword matching.
-
-**Example:**
-- Input: "I have skin rashes"
-- Output: Dermatology
-
-### 2. `find_doctors(department_id)`
-Finds all doctors in a specific department.
-
-**Example:**
-- Input: department_id=1 (General Medicine)
-- Output: List of doctors with names and specializations
-
-### 3. `check_availability(doctor_id, date)`
-Checks available appointment slots for a doctor on a specific date.
-
-**Example:**
-- Input: doctor_id=1, date="2025-08-23"
-- Output: List of available time slots
-
-### 4. `book_appointment(patient_name, doctor_id, date, time)`
-Books an appointment and marks the slot as unavailable.
-
-**Example:**
-- Input: patient_name="Dharshini", doctor_id=1, date="2025-08-23", time="10:00 AM"
-- Output: Appointment confirmation with ID
-
-## 🧠 Agent State Management
-
-The agent maintains conversation state including:
-- Patient name
-- Identified department
-- Selected doctor
-- Selected date and time
-- Available slots
-- Appointment status
-- Conversation history
-
-This allows the agent to:
-- Remember context across multiple messages
-- Make decisions based on previous interactions
-- Guide users through multi-step workflows
-
-## 🎨 UI Features
-
-### Main Chat Interface
-- Clean, professional chat UI
-- Message history with color-coded user/agent messages
-- Real-time agent activity display
-
-### Sidebar
-- Patient name input
-- Agent activity monitor (shows current action)
-- Reset conversation button
-
-### Agent Activity Display
-Shows high-level actions like:
-- 🎯 Understanding user request
-- ✓ Identified department: General Medicine
-- ✓ Found 2 doctors
-- ✓ Found 5 available slots
-- ⏳ Waiting for user to select a time slot
-- ✓ Appointment confirmed (ID: 1)
-
-## 🛡️ Safety Features
-
-- **No Medical Diagnosis**: Agent never diagnoses conditions or prescribes medicines
-- **Emergency Detection**: Recognizes emergency keywords and provides appropriate guidance
-- **Data Validation**: Validates all inputs before database operations
-- **Error Handling**: Graceful error handling with user-friendly messages
-- **Slot Verification**: Verifies slot availability before booking
-
-## 🧪 Testing the Application
-
-### Test Case 1: Basic Appointment Booking
-
-1. Open the application
-2. Enter patient name: "Dharshini"
-3. Type: "I have fever and headache and want to see a doctor tomorrow"
-4. Select a doctor from the list
-5. Confirm the date
-6. Choose a time slot
-7. Confirm booking
-8. Verify appointment is stored in database
-
-### Test Case 2: Department-Specific Request
-
-1. Type: "I need a dermatologist for my skin rash"
-2. Agent should identify Dermatology department
-3. Show dermatologists
-4. Continue with booking flow
-
-### Test Case 3: Emergency Detection
-
-1. Type: "I'm having severe chest pain and think it's a heart attack"
-2. Agent should display emergency message
-3. Advise calling emergency services
-
-## 📊 Database Schema
-
-### Departments
-- id, name, description
-
-### Doctors
-- id, name, department_id, specialization
-
-### AppointmentSlots
-- id, doctor_id, date, time, available
-
-### Appointments
-- id, patient_name, doctor_id, date, time, status, created_at
-
-## 🔮 Future Improvements
-
-- [ ] Integrate real LLM (OpenAI/Claude) for better natural language understanding
-- [ ] Add user authentication
-- [ ] Email/SMS confirmation
-- [ ] Appointment rescheduling and cancellation
-- [ ] Doctor ratings and reviews
-- [ ] Multi-language support
-- [ ] Calendar integration
-- [ ] Patient medical history
-- [ ] Payment integration
-- [ ] Admin dashboard
-
-## 🎓 Educational Value
-
-This project is perfect for demonstrating:
-- **Agentic AI concepts**: Tool use, reasoning, decision-making
-- **State management**: Maintaining context in conversations
-- **Database design**: Relational data with SQLAlchemy
-- **Modular architecture**: Separation of concerns
-- **Error handling**: Robust error management
-- **UI/UX design**: Clean, professional interface
-
-## 📝 Presentation Tips
-
-When presenting this project:
-
-1. **Explain the Agentic Loop**: Show how the agent decides which tool to call
-2. **Demonstrate Tool Calls**: Show the agent activity panel
-3. **Walk Through State**: Explain how state is maintained across messages
-4. **Show Database**: Verify appointments are stored in SQLite
-5. **Highlight Safety**: Mention emergency detection and no-diagnosis policy
-6. **Discuss Architecture**: Explain modular design and separation of concerns
-
-## 🤝 Contributing
-
-This is a beginner-friendly project perfect for learning Agentic AI concepts. Feel free to:
-- Add new tools
-- Improve the agent's reasoning
-- Enhance the UI
-- Add more features
-
-## 📄 License
-
-This project is for educational purposes.
-
-## 👨‍💻 Author
-
-Built as a demonstration of Agentic AI principles for healthcare appointment scheduling.
+Open `http://localhost:8501` in your browser.
 
 ---
 
-**Note**: This is a mock/demo application. Do not use for actual medical appointments or diagnoses.
+## 📖 How to Use
+
+### Example: Informational Question
+
+**User:** "What should I bring to my appointment?"
+
+**Agent:** Uses `search_knowledge_base` → retrieves from `preparation_guidelines.txt` → responds with grounded answer and source.
+
+### Example: Appointment Booking
+
+**User:** "Find a General Medicine doctor tomorrow."
+
+**Agent:** Uses appointment tools only:
+1. `find_department` → General Medicine
+2. `find_doctors` → list of doctors
+3. `check_availability` → available slots
+4. Asks for confirmation before `book_appointment`
+
+### Example: Combined Request
+
+**User:** "Tell me what documents I need and find a doctor tomorrow."
+
+**Agent:** Uses **both** RAG and appointment tools.
+
+### Example: Emergency
+
+**User:** "I have severe chest pain."
+
+**Agent:** Emergency detection triggers immediately — provides emergency guidance and advises calling 911.
+
+---
+
+## 🧪 Test Cases
+
+| # | Query | Expected Behavior |
+|---|-------|------------------|
+| 1 | "What should I bring to my appointment?" | Uses RAG |
+| 2 | "What is the cancellation policy?" | Uses RAG |
+| 3 | "What does Dermatology treat?" | Uses RAG |
+| 4 | "Find a General Medicine doctor tomorrow." | Uses appointment tools |
+| 5 | "Tell me what documents I need and find a doctor tomorrow." | Uses both |
+| 6 | "What is the insurance claim process?" | Says information unavailable |
+| 7 | "I have severe chest pain." | Emergency guidance |
+
+---
+
+## 🛡️ Healthcare Safety Limitations
+
+- **No Medical Diagnosis** — The agent never diagnoses conditions or prescribes medicines
+- **No Fabricated Information** — RAG only returns content from approved documents
+- **Emergency First** — Emergency keywords override all other flows
+- **Confirmation Before Booking** — Appointments require explicit user confirmation
+- **Source Attribution** — RAG responses cite the source document
+- **Educational Use Only** — Not for real medical decisions
+
+---
+
+## 🔧 Agent Tools
+
+### RAG Tool
+- **`search_knowledge_base(query)`** — Searches approved healthcare documents via Qdrant vector similarity
+
+### Appointment Tools
+- **`find_department(symptoms)`** — Routes to correct department
+- **`find_doctors(department)`** — Lists available doctors
+- **`check_availability(doctorName)`** — Shows available time slots
+- **`book_appointment(patientName, symptoms, department, doctorName, slotTime, preferredDate)`** — Confirms booking
+
+---
+
+## 📄 Adding New Knowledge Documents
+
+1. Create a new `.txt` file in `health-agent/rag/documents/`
+2. Add clear, structured content with headings
+3. Re-run the ingestion workflow in n8n
+4. The document is now searchable
+
+Documents are split into **500-character chunks** with **50-character overlap**, tagged with metadata (source filename, document type, chunk index).
+
+---
+
+## 🔄 Running Everything (Quick Start)
+
+```bash
+# Terminal 1: Start Qdrant
+docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
+
+# Terminal 2: Start n8n
+docker run -d --name n8n -p 5678:5678 --link qdrant \
+  -e N8N_HOST=localhost -e N8N_PORT=5678 \
+  -v n8n_data:/home/node/.n8n n8nio/n8n
+
+# Terminal 3: Install and run
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+streamlit run app.py
+```
+
+---
+
+## 🛑 Stopping Services
+
+```bash
+docker stop n8n qdrant
+```
+
+## 🔄 Restarting Services
+
+```bash
+docker start n8n qdrant
+streamlit run app.py
+```
+
+---
+
+## 📝 License
+
+For educational purposes. Not for real medical use.
+
+**Author:** Built as a demonstration of Agentic AI + RAG for healthcare appointment scheduling.
