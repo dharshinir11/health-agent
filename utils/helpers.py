@@ -51,14 +51,18 @@ def normalize_time(time_str: str) -> str:
 
 
 def is_emergency(message: str) -> bool:
-    """Check if message indicates emergency"""
+    """Check if message indicates emergency matching n8n Emergency Pre-Screen flags"""
     emergency_keywords = [
-        'emergency', 'urgent', 'critical', 'heart attack', 'stroke',
-        'bleeding', 'unconscious', 'not breathing', 'chest pain severe',
-        'severe pain', 'accident', 'injured badly'
+        'severe chest pain', 'crushing chest pain', 'pressure in chest', "can't breathe",
+        'cannot breathe', 'difficulty breathing', 'severe shortness of breath', 'unconscious',
+        'passed out', 'not responding', 'suicidal', 'kill myself', 'want to die', 'self harm',
+        'self-harm', 'heavy bleeding', 'uncontrolled bleeding', 'vomiting blood', 'stroke',
+        'face drooping', 'slurred speech', 'one side weak', 'seizure', 'convulsion',
+        'severe allergic reaction', 'anaphylaxis', 'emergency', 'heart attack'
     ]
     message_lower = message.lower()
     return any(keyword in message_lower for keyword in emergency_keywords)
+
 
 
 def get_emergency_response() -> str:

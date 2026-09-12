@@ -1,0 +1,32 @@
+CityCare General Hospital - Medical Departments & Specialties
+
+1. General Medicine (Internal Medicine):
+- Overview: Covers primary healthcare, systemic illnesses, chronic disease management (hypertension, diabetes), infectious diseases, viral fevers, fatigue, respiratory infections, and routine medical checkups.
+- Doctors:
+  * Dr. Ananya Sharma (MBBS, MD - General Medicine) - Specializes in chronic disease management, diabetes, and preventive medicine.
+  * Dr. Rahul Verma (MBBS, MD - Internal Medicine) - Specializes in infectious illnesses, hypertension, and acute medical conditions.
+
+2. Dermatology:
+- Overview: Comprehensive diagnosis and treatment of skin conditions, rashes, eczema, psoriasis, acne, hair loss, nail disorders, allergic skin reactions, and cosmetic consultations.
+- Doctors:
+  * Dr. Priya Patel (MBBS, MD - Dermatology) - Specializes in inflammatory dermatoses, cosmetic dermatology, and hair care.
+  * Dr. Amit Kumar (MBBS, MD - Dermatology) - Specializes in eczema, skin allergies, and procedural dermatology.
+
+3. Cardiology:
+- Overview: Specialized care for the cardiovascular system, heart health screenings, coronary artery disease management, arrhythmia, hypertension, post-infarction care, and ECG/Echocardiography diagnostics.
+- Note: Non-critical consultations and regular checkups are handled in OPD. Acute severe chest pain cases are immediately routed to Emergency.
+- Doctors:
+  * Dr. Sneha Reddy (MBBS, MD - Cardiology) - Specializes in preventive cardiology and non-invasive cardiovascular assessment.
+  * Dr. Vikram Singh (MBBS, DM - Cardiology) - Specializes in interventional cardiology and cardiac failure management.
+
+4. Orthopedics:
+- Overview: Care for musculoskeletal conditions, bone fractures, sports injuries, joint pain, arthritis, back pain, spine disorders, and joint replacement therapy.
+- Doctors:
+  * Dr. Neha Gupta (MBBS, MS - Orthopedics) - Specializes in pediatric orthopedics, joint preservation, and arthritis treatment.
+  * Dr. Rajesh Iyer (MBBS, MS - Orthopedics) - Specializes in spine surgery, joint replacements, and sports injuries.
+
+5. Pediatrics:
+- Overview: Complete healthcare for infants, children, and adolescents, including immunization, developmental milestones assessment, pediatric fevers, childhood asthma, and nutritional guidance.
+- Doctors:
+  * Dr. Kavya Nair (MBBS, MD - Pediatrics) - Specializes in infant care, pediatric nutrition, and immunizations.
+  * Dr. Arjun Mehta (MBBS, MD - Pediatrics) - Specializes in adolescent medicine and pediatric respiratory illnesses.

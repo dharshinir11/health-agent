@@ -24,6 +24,7 @@ class AgentState:
         self.conversation_history = []
         self.current_step = "start"  # start, department_found, doctors_found, slots_found, awaiting_selection, booking_confirmed
         self.last_tool_result = None
+        self.last_sources = []
     
     def update(self, key, value):
         """Update a state variable"""

@@ -389,7 +389,7 @@
         736,
         576
       ],
-      "webhookId": "840e97d2-677b-4ec5-a88a-88ef4cfef492",
+      "webhookId": "c3c78767-388e-43aa-bec0-565adca3ecb9",
       "credentials": {
         "gmailOAuth2": {
           "id": "DWrHsTsQIHtrFv7s",
@@ -601,31 +601,32 @@
     },
     {
       "parameters": {
-        "content": "## Healthcare AI Appointment Assistant\nSingle-workflow version: Chat -> Emergency Gate -> AI Agent -> self-contained tools.\nAll agent tools run inside this ONE workflow - no Execute Workflow sub-workflows are needed.\nBookings create REAL Google Calendar events, data table rows and Gmail confirmation emails.\nNOT a real medical system - for demonstration only.",
-        "height": 256,
-        "color": 4
+        "httpMethod": "POST",
+        "path": "healthcare-appointment",
+        "responseMode": "lastNode",
+        "options": {}
       },
-      "id": "e9759354-0dc7-4432-8314-1d705b307562",
-      "name": "Sticky Note 3bfd49d0",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
+      "id": "c1d2e3f4-0004-4a11-9c22-444444444444",
+      "name": "Appointment Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
       "position": [
-        -592,
-        576
-      ]
+        -1184,
+        -96
+      ],
+      "webhookId": "c1d2e3f4-0004-4a11-9c22-444444444444"
     },
     {
       "parameters": {
-        "content": "## Agent Tools\nscreen_for_emergency (Code Tool)\nfind_department (Code Tool, rule-based)\nfind_doctors (Data Table: Mock Doctors)\ncheck_availability (Code Tool, mock fixed slots)\n\nREAL FULFILLMENT:\ncreate_calendar_event / cancel_calendar_event / reschedule_calendar_event (Google Calendar)\nsave_booking / update_booking_status (Data Table: Appointment Bookings)\nsend_confirmation_email (Gmail)",
-        "color": 5
+        "jsCode": "const body = $json.body ?? $json;\nconst chatInput = body.chatInput ?? body.input ?? body.message ?? '';\nconst sessionId = body.sessionId ?? body.session_id ?? 'webhook-' + Date.now();\nreturn [{ json: { chatInput, sessionId } }];"
       },
-      "id": "2c1db343-77e4-4d68-89a1-85ba9b34323c",
-      "name": "Sticky Note d5978d22",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
+      "id": "d1e2f3a4-0005-4a11-9c22-555555555555",
+      "name": "Webhook Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        48,
-        864
+        -960,
+        -96
       ]
     }
   ],
@@ -802,14 +803,36 @@
           }
         ]
       ]
+    },
+    "Appointment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Webhook Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Normalize": {
+      "main": [
+        [
+          {
+            "node": "Emergency Pre-Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "bfa05157-791b-4c51-816a-17e05a16bd6f",
+  "versionId": "87ba06b0-e776-4529-b348-77cb1cc9dbb6",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "0fff7f58d37f3a358b380d1140f441411c2a13182f68a3f7783bb0bfc95d28c2"

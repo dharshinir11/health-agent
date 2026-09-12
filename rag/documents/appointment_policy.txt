@@ -1,0 +1,20 @@
+CityCare General Hospital - Appointment, Cancellation & Rescheduling Policies
+
+Booking Policy:
+- Advance Booking Window: Outpatient appointments can be booked up to 14 days in advance. Same-day bookings depend on doctor availability.
+- Required Information: Patients must provide their full legal name, contact phone number, symptoms or requested department, and preferred date/time slot.
+- Slot Duration: Standard consultation slots are 30 minutes in length.
+- Arrival Time: Patients are required to arrive at least 15 minutes prior to their scheduled slot for registration, triage vitals checking, and file creation.
+
+Cancellation Policy:
+- Cancellation Notice: We request at least 24 hours advance notice for appointment cancellations to allow waitlisted patients to receive timely care.
+- Cancellation Process: Appointments can be cancelled through this AI Assistant using the Booking ID / Event ID, or by calling the Appointment Desk at +1 (800) 555-BOOK.
+- Fee Policy: There is no cancellation fee if cancelled at least 2 hours prior to the appointment. Late cancellations or no-shows may incur a nominal processing fee during subsequent bookings.
+
+Rescheduling Policy:
+- Rescheduling Window: Patients may reschedule an appointment up to 2 times without additional administrative charges.
+- Rescheduling Process: Provide your existing Appointment ID / Booking ID, specify your new preferred date and available doctor slot, and the assistant will update your reservation instantly.
+- Subject to Availability: Rescheduled appointments depend on open slots in the attending physician's schedule.
+
+Missed Appointments / No-Show Policy:
+- If a patient is more than 20 minutes late without prior notice, the slot may be released to emergency or walk-in patients, and the patient may need to be accommodated as a standby.

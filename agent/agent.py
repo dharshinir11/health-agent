@@ -6,7 +6,7 @@ Implements the agentic loop with tool calling
 import re
 from .state import AgentState
 from .prompts import get_activity_description
-from tools import find_department, find_doctors, check_availability, book_appointment
+from tools import find_department, find_doctors, check_availability, book_appointment, search_knowledge_base
 
 
 class HealthcareAgent:
@@ -44,8 +44,10 @@ class HealthcareAgent:
         return {
             "response": response,
             "state": self.state.to_dict(),
-            "activity": self._get_current_activity()
+            "activity": self._get_current_activity(),
+            "sources": self.state.last_sources
         }
+
     
     def _extract_patient_name(self, message: str):
         """Extract patient name from message if mentioned"""
@@ -75,8 +77,7 @@ class HealthcareAgent:
         """
         message_lower = user_message.lower()
         
-        # Step 1: Determine what to do based on current state and message
-        
+        # Step 1: Handle ongoing booking state if already in progress
         # If we're awaiting a selection (time slot)
         if self.state.current_step == "awaiting_selection":
             return self._handle_time_selection(user_message)
@@ -97,9 +98,37 @@ class HealthcareAgent:
         if self.state.department_id and self.state.doctor_id and not self.state.selected_date and self._is_date_mention(message_lower):
             return self._handle_date_selection(user_message)
         
-        # If no department identified yet, find department
+        # Step 2: Check for informational / RAG query (timings, policies, what to bring, FAQs)
+        if self._is_informational_query(message_lower):
+            rag_result = search_knowledge_base(user_message)
+            self.state.last_tool_result = rag_result
+            self.state.last_sources = rag_result.get("sources", [])
+            self.state.current_step = "rag_answered"
+
+            rag_response = rag_result.get("answer", "I do not have that information in my approved documents.")
+            
+            # Check if user also explicitly asked about symptoms or booking a slot
+            has_booking_intent = any(b in message_lower for b in ["book an appointment", "schedule an appointment", "see a doctor", "need a doctor", "want to book", "book slot"])
+            has_symptoms = any(s in message_lower for s in ["fever", "cough", "pain", "rash", "skin condition", "headache", "chest pain", "bone fracture", "joint pain", "vomiting"])
+            if (has_booking_intent or has_symptoms) and not self.state.department_id:
+                dept_response = self._find_department_step(user_message)
+                return f"{rag_response}\n\n---\n\n{dept_response}"
+            
+            return rag_response
+
+
+        # Step 3: If no department identified yet, try to find department based on symptoms
         if not self.state.department_id:
-            return self._find_department_step(user_message)
+            dept_res = self._find_department_step(user_message)
+            # If find_department didn't find specific symptoms, try RAG search as fallback
+            if "couldn't determine" in dept_res.lower() or not self.state.department_id:
+                rag_result = search_knowledge_base(user_message)
+                if rag_result.get("success"):
+                    self.state.last_tool_result = rag_result
+                    self.state.last_sources = rag_result.get("sources", [])
+                    self.state.current_step = "rag_answered"
+                    return rag_result["answer"]
+            return dept_res
         
         # If department found but no doctors shown yet
         if self.state.department_id and not self.state.doctor_id:
@@ -114,8 +143,23 @@ class HealthcareAgent:
             return self._check_availability_step()
         
         # Default: ask what they need
-        return "I can help you book an appointment. Please tell me about your symptoms or which department you'd like to visit."
+        return "I can help you book an appointment or answer questions about hospital timings, policies, and preparation. Please tell me what you need!"
+
     
+    def _is_informational_query(self, message: str) -> bool:
+        """Check if message is an informational/RAG query"""
+        info_keywords = [
+            "bring", "carry", "document", "documents", "id proof", "identification",
+            "timing", "timings", "hour", "hours", "open", "close", "when is", "what time",
+            "visitor", "visiting", "policy", "policies", "cancel", "cancellation",
+            "reschedule", "rescheduling", "guideline", "guidelines", "fasting",
+            "ultrasound", "preparation", "prepare", "faq", "faqs", "teleconsultation",
+            "video consult", "wheelchair", "facility", "facilities", "parking",
+            "address", "location", "where is", "contact", "phone", "number", "helpline",
+            "bed", "icu", "cost", "fee", "insurance", "cashless", "report", "reports", "portal"
+        ]
+        return any(kw in message for kw in info_keywords)
+
     def _is_time_mention(self, message: str) -> bool:
         """Check if message mentions a time"""
         time_patterns = [
@@ -384,7 +428,9 @@ class HealthcareAgent:
         tool_name = None
         if self.state.last_tool_result:
             # Determine which tool was called based on result keys
-            if "department_name" in self.state.last_tool_result:
+            if "sources" in self.state.last_tool_result:
+                tool_name = "search_knowledge_base"
+            elif "department_name" in self.state.last_tool_result:
                 tool_name = "find_department"
             elif "doctors" in self.state.last_tool_result:
                 tool_name = "find_doctors"
@@ -393,4 +439,4 @@ class HealthcareAgent:
             elif "appointment_id" in self.state.last_tool_result:
                 tool_name = "book_appointment"
         
-        return get_activity_description(self.state.current_step, tool_name, self.state.last_tool_result)
+        return get_activity_description(self.state.current_step, tool_name, self.state.last_tool_result)

@@ -38,18 +38,20 @@ def find_department(user_request: str) -> dict:
                         "reasoning": f"Based on symptoms mentioned, {dept_name} seems appropriate"
                     }
     
-    # Default to General Medicine if no match
-    department = session.query(Department).filter_by(name="General Medicine").first()
-    if department:
-        return {
-            "success": True,
-            "department_id": department.id,
-            "department_name": department.name,
-            "description": department.description,
-            "reasoning": "Defaulting to General Medicine for general consultation"
-        }
+    # Only default to General Medicine if general medical/booking intent words are present
+    general_words = ["doctor", "appointment", "checkup", "consult", "sick", "ill", "hospital", "clinic", "visit", "physician"]
+    if any(w in user_request_lower for w in general_words):
+        department = session.query(Department).filter_by(name="General Medicine").first()
+        if department:
+            return {
+                "success": True,
+                "department_id": department.id,
+                "department_name": department.name,
+                "description": department.description,
+                "reasoning": "Defaulting to General Medicine for general consultation"
+            }
     
     return {
         "success": False,
-        "error": "Could not determine appropriate department"
-    }
+        "error": "Could not determine appropriate department from the request."
+    }

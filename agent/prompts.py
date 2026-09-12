@@ -146,7 +146,8 @@ def get_activity_description(step: str, tool_name: str = None, result: dict = No
         "doctors_found": f"✓ Found {result.get('count', 0)} doctors" if result else "✓ Searching for doctors",
         "slots_found": f"✓ Found {result.get('count', 0)} available slots" if result else "✓ Checking availability",
         "awaiting_selection": "⏳ Waiting for user to select a time slot",
-        "booking_confirmed": f"✓ Appointment confirmed (ID: {result.get('appointment_id')})" if result else "✓ Booking appointment"
+        "booking_confirmed": f"✓ Appointment confirmed (ID: {result.get('appointment_id')})" if result else "✓ Booking appointment",
+        "rag_answered": f"✓ Retrieved from {', '.join(result.get('sources', []))}" if result and result.get('sources') else "✓ Searched knowledge base"
     }
     
     if tool_name:
@@ -154,8 +155,9 @@ def get_activity_description(step: str, tool_name: str = None, result: dict = No
             "find_department": "🔍 Identifying appropriate department",
             "find_doctors": "🔍 Searching for doctors",
             "check_availability": "🔍 Checking appointment availability",
-            "book_appointment": "📅 Booking appointment"
+            "book_appointment": "📅 Booking appointment",
+            "search_knowledge_base": "📚 Searching knowledge base documents (RAG)"
         }
         return tool_activities.get(tool_name, "🔄 Processing")
     
-    return activities.get(step, "🔄 Processing")
+    return activities.get(step, "🔄 Processing")
