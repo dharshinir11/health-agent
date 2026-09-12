@@ -16,5 +16,47 @@
     "name": "Dr. Priya",
     "department": "Dermatology",
     "time": "4:00 PM"
+  },
+  {
+    "id": 4,
+    "name": "Dr. Kumar",
+    "department": "Cardiology",
+    "time": "10:00 AM"
+  },
+  {
+    "id": 5,
+    "name": "Dr. Sharma",
+    "department": "Neurology",
+    "time": "2:00 PM"
+  },
+  {
+    "id": 6,
+    "name": "Dr. Singh",
+    "department": "Orthopedics",
+    "time": "4:00 PM"
+  },
+  {
+    "id": 7,
+    "name": "Dr. Gupta",
+    "department": "Gynecology",
+    "time": "10:00 AM"
+  },
+  {
+    "id": 8,
+    "name": "Dr. Yadav",
+    "department": "Pediatrics",
+    "time": "2:00 PM"
+  },
+  {
+    "id": 9,
+    "name": "Dr. Verma",
+    "department": "ENT",
+    "time": "4:00 PM"
+  },
+  {
+    "id": 10,
+    "name": "Dr. Mishra",
+    "department": "Ophthalmology",
+    "time": "10:00 AM"
   }
 ]
